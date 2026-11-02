@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>발굴현장 월간 점검</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#0B6457">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="현장 점검">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* 야장(현장 기록부) 구조: 위에서 아래로 넘기는 점검 기록, 색은 판정 상태에만 쓴다 */
+:root{
+  --ground:#EFF2EC;--sheet:#FBFCF9;--ink:#1A231E;--ink2:#55615A;--rule:#CBD3C9;
+  --accent:#0B6457;--accent-ink:#FFFFFF;--accent-bg:#DCEDE8;
+  --bad:#B8321B;--bad-bg:#FBE6E0;--warn:#8A5A08;--warn-bg:#FAEFD6;
+  --ok:#27704A;--ok-bg:#E0F0E6;--na:#616B65;--na-bg:#E6E9E5;
+  --soil:#B9AE97;--scrim:rgba(16,22,18,.6);
+  --sans:"Apple SD Gothic Neo","Pretendard","Malgun Gothic",sans-serif;
+  --mono:ui-monospace,"SF Mono",Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#131915;--sheet:#1B231E;--ink:#E7ECE6;--ink2:#A2AEA6;--rule:#38443C;
+  --accent:#52C2AE;--accent-ink:#06211C;--accent-bg:#17352F;
+  --bad:#F2876F;--bad-bg:#42201A;--warn:#E7B75C;--warn-bg:#3C2E12;
+  --ok:#74C998;--ok-bg:#1B3526;--na:#A3ADA6;--na-bg:#2A322D;
+  --soil:#6E6655;--scrim:rgba(0,0,0,.7);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#131915;--sheet:#1B231E;--ink:#E7ECE6;--ink2:#A2AEA6;--rule:#38443C;
+  --accent:#52C2AE;--accent-ink:#06211C;--accent-bg:#17352F;
+  --bad:#F2876F;--bad-bg:#42201A;--warn:#E7B75C;--warn-bg:#3C2E12;
+  --ok:#74C998;--ok-bg:#1B3526;--na:#A3ADA6;--na-bg:#2A322D;
+  --soil:#6E6655;--scrim:rgba(0,0,0,.7);color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--ground);color:var(--ink);font:400 15px/1.6 var(--sans);word-break:keep-all;overflow-wrap:anywhere}
+#app{max-width:880px;margin:0 auto;padding-block:20px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+h1,h2,h3,p{margin:0}
+h1{font-size:24px;line-height:1.3;font-weight:700;text-wrap:balance}
+h2{font-size:17px;font-weight:700}
+h3{font-size:14px;font-weight:600;color:var(--ink2)}
+a{color:var(--accent)}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink2)}.small{font-size:13px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.crumb{font-size:13px;color:var(--ink2);display:flex;gap:6px;flex-wrap:wrap}
+.crumb a{color:var(--ink2)}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);font:600 14px/1.2 var(--sans);padding:10px 14px;min-height:42px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:hover{border-color:var(--ink2)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.dng{color:var(--bad);border-color:var(--bad)}
+.btn.sm{min-height:36px;padding:6px 10px;font-size:13px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+input[type=text],input[type=date],input[type=number],input[type=tel],select,textarea{width:100%;font:400 15px/1.5 var(--sans);color:var(--ink);background:var(--sheet);border:1px solid var(--rule);border-radius:6px;padding:9px 10px;min-height:42px}
+textarea{min-height:72px;resize:vertical}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--ink2);min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:8px}
+.pad{padding:16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.pill{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.p-bad{background:var(--bad-bg);color:var(--bad)}.p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-ok{background:var(--ok-bg);color:var(--ok)}.p-na{background:var(--na-bg);color:var(--na)}.p-acc{background:var(--accent-bg);color:var(--accent)}
+.brief{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--rule);border-radius:8px;background:var(--sheet)}
+.brief div{padding:12px 14px;border-left:1px solid var(--rule);min-width:0}
+.brief div:first-child{border-left:0}
+.brief b{display:block;font:600 24px/1.2 var(--mono)}
+.brief .hot b{color:var(--bad)}
+.sites{display:flex;flex-direction:column;background:var(--sheet);border:1px solid var(--rule);border-radius:8px}
+.site{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:6px 16px;padding:14px 16px;border-top:1px solid var(--rule);color:inherit;text-decoration:none}
+.site:first-child{border-top:0}
+.site:hover{background:var(--ground)}
+.site .nm{font-weight:700;font-size:16px}
+.site .ln{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.strata{display:flex;flex-direction:column;gap:2px;align-self:center}
+.strata i{display:flex;height:6px;background:var(--soil);border-radius:1px;overflow:hidden}
+.strata u{display:block;height:100%}
+.strata .x{background:var(--bad)}.strata .y{background:var(--warn)}
+.strata em{font:400 11px var(--sans);color:var(--ink2);margin-top:3px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--rule);overflow-x:auto}
+.tabs button{appearance:none;background:none;border:0;border-bottom:3px solid transparent;padding:10px 12px;font:600 14px var(--sans);color:var(--ink2);cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.list{display:flex;flex-direction:column}
+.li{padding:12px 16px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
+.li:first-child{border-top:0}
+a.li{color:inherit;text-decoration:none}a.li:hover{background:var(--ground)}
+.li .hd{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.quote{font-size:14px;color:var(--ink2)}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.ph{appearance:none;padding:0;border:1px solid var(--rule);border-radius:4px;background:var(--na-bg);cursor:zoom-in;width:84px;height:84px;overflow:hidden;position:relative;display:block}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph img.broken{visibility:hidden}
+.ph.big{width:100%;height:auto;aspect-ratio:4/3}
+.tw{position:relative;display:inline-block}
+.tw .x{position:absolute;top:-6px;right:-6px;width:26px;height:26px;border-radius:50%;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);cursor:pointer;font-size:14px;line-height:1}
+.sticky{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--ground);padding-block:8px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--rule)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ground)}
+.bar{height:6px;background:var(--na-bg);border-radius:3px;display:flex;overflow:hidden}
+.bar u{display:block;height:100%}
+.bar .a{background:var(--ok)}.bar .b{background:var(--bad)}.bar .c{background:var(--warn)}.bar .d{background:var(--na)}
+.prog{display:flex;justify-content:space-between;gap:10px;font-size:13px;flex-wrap:wrap}
+.jump{display:flex;gap:4px;overflow-x:auto}
+.jump button{appearance:none;border:0;background:none;color:var(--accent);font:600 13px var(--sans);padding:4px 8px;cursor:pointer;white-space:nowrap}
+.cat{padding:10px 16px;background:var(--ground);border-top:1px solid var(--rule);font-weight:700;font-size:14px;display:flex;justify-content:space-between}
+.cat:first-child{border-top:0;border-radius:8px 8px 0 0}
+.row{padding:14px 16px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:10px}
+.row:first-child{border-top:0}.cat+.row{border-top:1px solid var(--rule)}
+.row.s-bad{background:var(--bad-bg)}.row.s-unk{background:var(--warn-bg)}
+.q{font-weight:500}
+.keytag{font:600 11px var(--sans);color:var(--bad);border:1px solid var(--bad);border-radius:3px;padding:0 4px;margin-right:6px;vertical-align:1px}
+.basis{font-size:12px;color:var(--ink2)}
+.carry{font-size:13px;display:flex;flex-direction:column;gap:6px;padding-top:4px}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.seg button{appearance:none;min-height:44px;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:6px;font:600 13px var(--sans);cursor:pointer;padding:4px}
+.seg button[aria-pressed=true].b-ok{background:var(--ok);border-color:var(--ok);color:var(--sheet)}
+.seg button[aria-pressed=true].b-bad{background:var(--bad);border-color:var(--bad);color:var(--sheet)}
+.seg button[aria-pressed=true].b-unk{background:var(--warn);border-color:var(--warn);color:var(--sheet)}
+.seg button[aria-pressed=true].b-na{background:var(--na);border-color:var(--na);color:var(--sheet)}
+.link{appearance:none;background:none;border:0;padding:2px 0;color:var(--accent);font:600 13px var(--sans);cursor:pointer;align-self:flex-start}
+.cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cmp>div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.empty-ph{aspect-ratio:4/3;border:1px dashed var(--rule);border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--ink2);font-size:13px;padding:8px}
+.strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
+.strip figure{margin:0;flex:0 0 150px;display:flex;flex-direction:column;gap:4px}
+.strip figcaption{font:500 12px var(--mono);color:var(--ink2)}
+.tbl-w{overflow-x:auto}
+.chg{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 12px;font-size:14px}
+.chg dt{color:var(--ink2)}.chg dd{margin:0}
+.grp{display:flex;flex-direction:column;gap:6px}
+.grp ul{margin:0;padding-left:18px}
+.ov{position:fixed;inset:0;background:var(--scrim);z-index:20;display:flex;align-items:center;justify-content:center;padding:16px}
+.dlg{background:var(--sheet);border-radius:8px;padding:18px;max-width:560px;width:100%;max-height:calc(100% - 24px);overflow:auto;display:flex;flex-direction:column;gap:12px}
+.lb{max-width:100%;max-height:100%;display:flex;flex-direction:column;gap:8px;align-items:center;color:#fff}
+.lb img{max-width:100%;max-height:82vh;object-fit:contain}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--ground);padding:9px 14px;border-radius:6px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+.setrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:8px 16px;border-top:1px solid var(--rule)}
+.chk{display:inline-flex;gap:4px;align-items:center;font-size:13px;white-space:nowrap}
+@media (max-width:560px){
+  .site{grid-template-columns:minmax(0,1fr)}
+  .grid2{grid-template-columns:minmax(0,1fr)}
+  .brief b{font-size:20px}.brief div{padding:10px}
+  .setrow{grid-template-columns:minmax(0,1fr) auto}
+  .setrow input[type=text]{grid-column:1/-1}
+  .chg{grid-template-columns:minmax(0,1fr)}.chg dd{margin-bottom:6px}
+}
+@media (prefers-reduced-motion:no-preference){.btn,.seg button{transition:background .12s,border-color .12s}}
+</style>
+</head>
+<body>
+<div id="app"><p class="muted">불러오는 중…</p></div>
+<div id="ovl"></div>
+<div id="toast" hidden role="status"></div>
+<script>
+'use strict';
+/* ---------- 순수 로직 ---------- */
+const RL={ok:'이행',bad:'미이행',unk:'확인 못 함',na:'해당없음'};
+const RS=['ok','bad','unk','na'];
+const STATE_F=[{k:'phase',label:'조사 단계'},{k:'progress',label:'공정률',unit:'%'},{k:'crew',label:'현장 인력',unit:'명'},{k:'area',label:'조사 구역'}];
+const PHASES=['착수 준비','표토 제거','유구 조사','정밀 조사','마무리·복토','완료'];
+const clone=o=>JSON.parse(JSON.stringify(o));
+const pad=n=>String(n).padStart(2,'0');
+function today(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function addMonths(s,n){const[y,m,d]=s.split('-').map(Number);const t=new Date(y,m-1+n,1);const last=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();return t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(Math.min(d,last))}
+function dayDiff(a,b){return Math.round((Date.parse(a)-Date.parse(b))/864e5)}
+function byDate(a,b){return a.date<b.date?-1:a.date>b.date?1:(a.createdAt||0)-(b.createdAt||0)}
+/* 완료된 점검들을 순서대로 훑어 아직 해소되지 않은 항목을 찾는다.
+   미이행은 이행·해당없음 판정이 나올 때까지 남고, 확인 못 함은 미이행을 해소하지 않는다. */
+function trackIssues(visits){
+  const m={};
+  for(const v of visits){
+    for(const it of (v.items||[])){
+      const res=(v.results||{})[it.id]||{},r=res.r,c=m[it.id];
+      if(r==='bad'){
+        if(c&&c.streak>0){c.streak++}else{m[it.id]={item:it,streak:1,first:v.date}}
+        Object.assign(m[it.id],{last:{date:v.date,note:res.note||'',photos:res.photos||[]},lastR:'bad',item:it});
+      }else if(r==='ok'||r==='na'){delete m[it.id]}
+      else{
+        if(c){c.lastR='unk';c.unkDate=v.date}
+        else m[it.id]={item:it,streak:0,first:v.date,lastR:'unk',unkDate:v.date,last:{date:v.date,note:res.note||'',photos:res.photos||[]}};
+      }
+    }
+  }
+  if(visits.length){const live=new Set((visits[visits.length-1].items||[]).map(i=>i.id));for(const id in m)if(!live.has(id))delete m[id]}
+  return m;
+}
+function diffVisit(prior,cur){
+  const open=trackIssues(prior),o={fixed:[],fresh:[],stay:[],unseen:[]};
+  for(const it of (cur.items||[])){
+    const r=((cur.results||{})[it.id]||{}).r,p=open[it.id],was=p&&p.streak>0;
+    if(r==='bad')(was?o.stay:o.fresh).push({item:it,streak:(was?p.streak:0)+1});
+    else if(was&&(r==='ok'||r==='na'))o.fixed.push({item:it,streak:p.streak});
+    else if(was)o.unseen.push({item:it,streak:p.streak});
+  }
+  return o;
+}
+function tallyOf(items,results){const t={ok:0,bad:0,unk:0,na:0,none:0};for(const it of items){const r=(results[it.id]||{}).r;if(r)t[r]++;else t.none++}return t}
+function csvCell(s){s=String(s==null?'':s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+
+/* ---------- 기기 저장소 (IndexedDB) ---------- */
+const DEFAULT_CFG={"items":[{"id":"i01","cat":"허가·행정","text":"발굴 허가서(허가번호, 조사기간, 범위)를 현장에서 확인할 수 있다","key":true,"basis":"매장유산법 제11조"},{"id":"i02","cat":"허가·행정","text":"허가 범위 밖 굴착이 없다","key":true,"basis":"매장유산법 제11조"},{"id":"i03","cat":"허가·행정","text":"조사 기간이 허가 기간 안에 있다","basis":"매장유산법 제11조"},{"id":"i04","cat":"허가·행정","text":"발굴 착수신고를 마쳤다","basis":"시행규칙 제7조의2"},{"id":"i05","cat":"허가·행정","text":"조사단 구성이 계획서와 같다 (조사단장, 책임조사원, 조사원)","basis":"시행규칙 조사단 역할 규정"},{"id":"i06","cat":"허가·행정","text":"조사일지를 빠짐없이 쓰고 있다"},{"id":"i07","cat":"현장 운영","text":"책임조사원이 현장을 직접 지휘·감독하고 있다","key":true,"basis":"시행규칙 조사단 역할 규정"},{"id":"i08","cat":"현장 운영","text":"현장 안내판과 출입 통제 시설이 있다"},{"id":"i09","cat":"현장 운영","text":"중장비 작업에 조사원이 입회한다"},{"id":"i10","cat":"현장 운영","text":"공사 중 매장유산 발견 시 공사를 즉시 중지했다","key":true,"basis":"매장유산법 제5조"},{"id":"i11","cat":"유구·유물 보호","text":"노출 유구에 덮개 등 우천 대비가 되어 있다","key":true},{"id":"i12","cat":"유구·유물 보호","text":"배수로가 막히지 않았고 침수 흔적이 없다"},{"id":"i13","cat":"유구·유물 보호","text":"유구 훼손, 답압, 무단 교란 흔적이 없다","key":true},{"id":"i14","cat":"유구·유물 보호","text":"토층 둑과 기준 둑이 유지되고 있다"},{"id":"i15","cat":"유구·유물 보호","text":"출토 유물 목록과 번호가 최신이다","basis":"시행규칙 결과보고서 요건"},{"id":"i16","cat":"유구·유물 보호","text":"유물 임시 보관소가 잠겨 있고 수량이 목록과 맞다","key":true},{"id":"i17","cat":"유구·유물 보호","text":"취약 유물에 응급 보존 조치를 했다"},{"id":"i18","cat":"기록","text":"유구 사진과 실측 기록이 진행 상황을 따라가고 있다"},{"id":"i19","cat":"기록","text":"측량 기준점이 유지되고 있다"},{"id":"i20","cat":"안전","text":"안전모 등 보호구를 착용하고 있다","key":true},{"id":"i21","cat":"안전","text":"굴착면 붕괴 위험이 없다 (경사, 흙막이, 균열)","key":true},{"id":"i22","cat":"안전","text":"깊은 트렌치와 단차에 추락 방지 조치가 있다","key":true},{"id":"i23","cat":"안전","text":"중장비 동선과 작업자 동선이 분리되어 있다"},{"id":"i24","cat":"안전","text":"작업 전 안전교육 기록이 있다"},{"id":"i25","cat":"안전","text":"구급함, 비상 연락망, 폭염·한파 대비가 있다"},{"id":"i26","cat":"환경·민원","text":"토사 유출과 비산먼지 방지 조치가 있다"},{"id":"i27","cat":"환경·민원","text":"폐기물과 자재가 정리되어 있다"},{"id":"i28","cat":"환경·민원","text":"민원 내용과 처리 기록이 있다"},{"id":"i29","cat":"마무리 단계","text":"출토 유물 목록과 사진을 결과보고서용으로 정리했다","basis":"시행규칙 결과보고서 요건"},{"id":"i30","cat":"마무리 단계","text":"보존조치 현장 사진, 측량성과도, 향후 관리계획을 준비했다","basis":"시행규칙 결과보고서 요건"}],"interval":1};
+const urls=new Map(),src=id=>urls.get(id)||'data:,';
+const IDB={h:null,
+  open(){return new Promise((res,rej)=>{const r=indexedDB.open('dig-inspect',1);r.onupgradeneeded=()=>{r.result.createObjectStore('docs');r.result.createObjectStore('blobs')};r.onsuccess=()=>{this.h=r.result;res()};r.onerror=()=>rej(r.error)})},
+  run(st,mode,fn){return new Promise((res,rej)=>{const t=this.h.transaction(st,mode),r=fn(t.objectStore(st));const fail=()=>rej({code:t.error&&t.error.name==='QuotaExceededError'?'quota_exceeded':'idb',message:String(t.error)});t.oncomplete=()=>res(r?r.result:undefined);t.onerror=fail;t.onabort=fail})},
+  get(st,k){return this.run(st,'readonly',o=>o.get(k))},
+  put(st,k,v){return this.run(st,'readwrite',o=>o.put(v,k))},
+  del(st,k){return this.run(st,'readwrite',o=>o.delete(k))},
+  clear(st){return this.run(st,'readwrite',o=>o.clear())},
+  keys(st){return this.run(st,'readonly',o=>o.getAllKeys())},
+  all(st){return this.run(st,'readonly',o=>o.getAll())}};
+const makeDb=()=>({doc:p=>({
+  set:d=>IDB.put('docs',p,clone(d)),
+  update:async d=>{const c=(await IDB.get('docs',p))||{};await IDB.put('docs',p,{...c,...clone(d)})},
+  delete:()=>IDB.del('docs',p)})});
+const makeAssets=()=>({
+  upload:async b=>{const id=uid('a');await IDB.put('blobs',id,b);urls.set(id,URL.createObjectURL(b));return{id}},
+  delete:async id=>{await IDB.del('blobs',id);if(urls.has(id)){URL.revokeObjectURL(urls.get(id));urls.delete(id)}return{deleted:true}}});
+const makeDownloads=()=>({save:async({filename,data})=>{const u=URL.createObjectURL(data instanceof Blob?data:new Blob([data])),a=document.createElement('a');a.href=u;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),60000);return{status:'saved'}}});
+async function loadAll(){
+  const ks=await IDB.keys('docs'),vs=await IDB.all('docs');S.sites={};S.visits={};S.config=clone(DEFAULT_CFG);
+  ks.forEach((k,i)=>{const[c,id]=k.split('/');if(c==='sites')S.sites[id]=vs[i];if(c==='visits')S.visits[id]=vs[i];if(k==='meta/config')S.config={items:[],interval:1,...vs[i]}});
+  for(const u of urls.values())URL.revokeObjectURL(u);urls.clear();
+  const bk=await IDB.keys('blobs'),bv=await IDB.all('blobs');bk.forEach((k,i)=>urls.set(k,URL.createObjectURL(bv[i])));
+}
+const lastBk=()=>{try{return localStorage.getItem('lastBackup')||''}catch(e){return''}};
+function bkChip(){
+  if(!Object.keys(S.visits).length)return'';const l=lastBk();
+  if(!l)return `<span class="pill p-warn">백업한 적 없음</span>`;
+  const d=dayDiff(today(),l);return d>30?`<span class="pill p-warn">마지막 백업 ${d}일 전</span>`:`<span class="small muted">마지막 백업 ${dots(l)}</span>`;
+}
+const b64=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=()=>rej(r.error);r.readAsDataURL(b)});
+function fromB64(u){const i=u.indexOf(','),bin=atob(u.slice(i+1)),a=new Uint8Array(bin.length);for(let k=0;k<bin.length;k++)a[k]=bin.charCodeAt(k);return new Blob([a],{type:u.slice(5,i).split(';')[0]})}
+async function backup(){
+  toast('백업 파일을 만드는 중입니다.');
+  const p=['{"app":"dig-inspect","version":1,"exportedAt":'+JSON.stringify(new Date().toISOString())+',"config":',JSON.stringify(S.config),',"sites":',JSON.stringify(S.sites),',"visits":',JSON.stringify(S.visits),',"photos":{'];
+  let first=true;for(const id of await IDB.keys('blobs')){p.push((first?'':',')+JSON.stringify(id)+':'+JSON.stringify(await b64(await IDB.get('blobs',id))));first=false}
+  p.push('}}');
+  await downloads.save({filename:'dig-backup-'+today()+'.json',data:new Blob(p,{type:'application/json'})});
+  try{localStorage.setItem('lastBackup',today())}catch(e){}
+  toast('백업 파일을 저장했습니다.');render();
+}
+async function restore(file){
+  let d;try{d=JSON.parse(await file.text())}catch(e){d=null}
+  if(!d||d.app!=='dig-inspect'||!d.sites||!d.visits){toast('이 앱의 백업 파일이 아닙니다.');return}
+  if(!await ask('백업을 복원할까요?',`이 기기의 현재 기록을 모두 지우고 백업의 현장 ${Object.keys(d.sites).length}곳, 점검 ${Object.keys(d.visits).length}건으로 바꿉니다.`,'복원',true))return;
+  try{
+    await IDB.clear('docs');await IDB.clear('blobs');
+    await IDB.put('docs','meta/config',d.config||DEFAULT_CFG);
+    for(const k in d.sites)await IDB.put('docs','sites/'+k,d.sites[k]);
+    for(const k in d.visits)await IDB.put('docs','visits/'+k,d.visits[k]);
+    for(const k in d.photos||{})await IDB.put('blobs',k,fromB64(d.photos[k]));
+    try{Object.keys(localStorage).filter(k=>k.startsWith('draft-')).forEach(k=>localStorage.removeItem(k))}catch(e){}
+    W=null;dirty=false;await loadAll();toast('복원했습니다.');nav('');
+  }catch(e){toast(e&&e.code==='quota_exceeded'?'기기 저장 공간이 부족합니다.':'복원하지 못했습니다. 파일을 확인하세요.')}
+}
+
+/* ---------- 상태 ---------- */
+const S={sites:{},visits:{},config:{items:[],interval:1},got:0,noDb:false,slow:false,tab:'open'};
+let db=null,assets=null,downloads=null,W=null,dirty=false,saving=false,again=false,saveT=null,noteOpen=new Set();
+const $app=document.getElementById('app'),$ov=document.getElementById('ovl'),$toast=document.getElementById('toast');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const dots=d=>d?d.replace(/-/g,'.'):'-';
+function toast(m){$toast.textContent=m;$toast.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{$toast.hidden=true},3200)}
+const doneOf=id=>Object.values(S.visits).filter(v=>v.siteId===id&&v.status==='done').sort(byDate);
+const allOf=id=>Object.values(S.visits).filter(v=>v.siteId===id).sort(byDate);
+const curItems=s=>[...(S.config.items||[]),...((s&&s.custom)||[])];
+const itemsOf=(v,s)=>(v.items&&v.items.length)?v.items:curItems(s);
+function priorOf(v){return doneOf(v.siteId).filter(x=>x.id!==v.id&&byDate(x,v)<0)}
+function meta(s){
+  const done=doneOf(s.id),last=done[done.length-1],open=Object.values(trackIssues(done));
+  const bad=open.filter(i=>i.streak>0).length,unk=open.filter(i=>i.lastR==='unk').length;
+  const due=last?addMonths(last.date,S.config.interval||1):(s.startDate||today());
+  const ended=s.status==='ended',late=!ended&&due<today();
+  const draft=allOf(s.id).find(v=>v.status==='draft');
+  const soon=!ended&&!late&&due.slice(0,7)===today().slice(0,7);
+  return{done,last,open,bad,unk,due,late,soon,ended,draft};
+}
+
+/* ---------- 공용 조각 ---------- */
+function ph(id,cap,cls){return `<button type="button" class="ph ${cls||''}" data-act="zoom" data-id="${esc(id)}" data-cap="${esc(cap||'')}" aria-label="사진 크게 보기"><img src="${esc(src(id))}" alt="${esc(cap||'현장 사진')}" loading="lazy"></button>`}
+function up(target,multi,label){return `<label class="btn sm"><input class="vh" type="file" accept="image/*" ${multi?'multiple':''} data-up="${esc(target)}">${esc(label||'사진 추가')}</label>`}
+function strata(done){
+  const ls=done.slice(-6).reverse();
+  if(!ls.length)return `<div class="strata"><em>점검 기록 없음</em></div>`;
+  return `<div class="strata" title="최근 점검 ${ls.length}회, 위가 최신. 빨강은 미이행 비율">`+ls.map(v=>{const t=tallyOf(v.items||[],v.results||{}),n=(v.items||[]).length||1;return `<i><u class="x" style="width:${t.bad/n*100}%"></u><u class="y" style="width:${t.unk/n*100}%"></u></i>`}).join('')+`<em>최근 점검 ${ls.length}회 층위 · 빨강 미이행</em></div>`;
+}
+function dueChip(m){
+  if(m.ended)return `<span class="pill p-na">조사 종료</span>`;
+  if(m.draft)return `<span class="pill p-acc">점검 작성 중</span>`;
+  if(m.late)return `<span class="pill p-bad">점검 지연 ${dayDiff(today(),m.due)}일</span>`;
+  if(m.soon)return `<span class="pill p-warn">이번 달 예정</span>`;
+  return `<span class="pill p-ok">다음 ${dots(m.due)}</span>`;
+}
+
+/* ---------- 화면: 현장 목록 ---------- */
+function vHome(){
+  const list=Object.values(S.sites).map(s=>({s,m:meta(s)}));
+  const rank=x=>x.m.ended?3:x.m.late?0:x.m.soon?1:2;
+  list.sort((a,b)=>rank(a)-rank(b)||(a.m.due<b.m.due?-1:1));
+  const act=list.filter(x=>!x.m.ended),late=act.filter(x=>x.m.late).length,soon=act.filter(x=>x.m.soon).length,bad=act.reduce((n,x)=>n+x.m.bad,0);
+  return `<header class="top"><div><p class="small muted">${esc(today().replace(/-/g,'.'))} 기준 · ${S.config.interval||1}개월 주기</p><h1>발굴현장 월간 점검</h1></div>
+  <div class="acts"><a class="btn" href="#checklist">체크리스트 관리</a><button class="btn" data-act="backup">백업</button><button class="btn pri" data-act="site-new">현장 추가</button></div></header>${bkChip()?`<div>${bkChip()}</div>`:''}
+  <section class="brief" aria-label="요약">
+   <div class="${late?'hot':''}"><b>${late}</b><span class="small muted">점검 지연 현장</span></div>
+   <div><b>${soon}</b><span class="small muted">이번 달 예정</span></div>
+   <div class="${bad?'hot':''}"><b>${bad}</b><span class="small muted">미해결 미이행</span></div></section>
+  ${list.length?`<section class="sites">`+list.map(({s,m})=>`<a class="site" href="#site-${esc(s.id)}"><div class="stack" style="gap:4px"><span class="nm">${esc(s.name)}</span>
+   <span class="ln">${dueChip(m)}${m.bad?`<span class="pill p-bad">미이행 ${m.bad}</span>`:''}${m.unk?`<span class="pill p-warn">확인 못 함 ${m.unk}</span>`:''}</span>
+   <span class="small muted">${esc(s.org||'조사기관 미입력')} · 최근 점검 ${m.last?dots(m.last.date):'없음'}</span></div>${strata(m.done)}</a>`).join('')+`</section>`
+  :`<section class="sheet pad stack"><h2>등록된 현장이 없습니다</h2><p class="muted">현장 추가를 누르고 현장명과 조사기관을 입력하면 점검을 시작할 수 있습니다.</p></section>`}`;
+}
+
+/* ---------- 화면: 현장 ---------- */
+function issueLi(i){
+  const l=i.last||{};
+  return `<div class="li"><div class="hd"><span class="q">${i.item.key?'<span class="keytag">중점</span>':''}${esc(i.item.text)}</span>
+  ${i.streak>0?`<span class="pill p-bad">${i.streak>1?i.streak+'회 연속 미이행':'미이행'}</span>`:`<span class="pill p-warn">확인 못 함</span>`}</div>
+  <p class="small muted">${esc(i.item.cat||'')} · ${i.streak>0?'최초 지적 '+dots(i.first):'미확인 '+dots(i.unkDate)}</p>
+  ${l.note?`<p class="quote">${esc(l.note)}</p>`:''}${(l.photos||[]).length?`<div class="thumbs">${l.photos.map(p=>ph(p,i.item.text)).join('')}</div>`:''}</div>`;
+}
+function vSite(id){
+  const s=S.sites[id];if(!s)return vMissing();
+  const m=meta(s),tab=S.tab,vis=allOf(id).reverse();
+  const openList=m.open.slice().sort((a,b)=>b.streak-a.streak||(b.item.key?1:0)-(a.item.key?1:0));
+  let body='';
+  if(tab==='open')body=openList.length?`<section class="sheet list">${openList.map(issueLi).join('')}</section>`:`<p class="sheet pad muted">${m.done.length?'미해결 항목이 없습니다.':'완료한 점검이 없습니다. 첫 점검을 시작하세요.'}</p>`;
+  if(tab==='hist')body=vis.length?`<section class="sheet list">${vis.map(v=>{const t=tallyOf(itemsOf(v,s),v.results||{});return `<a class="li" href="#visit-${esc(v.id)}"><div class="hd"><span class="num">${dots(v.date)}</span><span class="acts" style="gap:6px">${v.status==='draft'?'<span class="pill p-acc">작성 중</span>':''}${t.bad?`<span class="pill p-bad">미이행 ${t.bad}</span>`:''}${t.unk?`<span class="pill p-warn">확인 못 함 ${t.unk}</span>`:''}<span class="pill p-ok">이행 ${t.ok}</span></span></div>${v.summary?`<p class="quote">${esc(v.summary)}</p>`:''}</a>`}).join('')}</section>`:`<p class="sheet pad muted">점검 기록이 없습니다.</p>`;
+  if(tab==='photo'){
+    const sp=s.spots||[];
+    body=sp.length?sp.map(p=>{const fs=allOf(id).filter(v=>(v.spots||{})[p.id]);return `<section class="sheet pad stack"><h2>${esc(p.name)}</h2>${fs.length?`<div class="strip">${fs.map(v=>`<figure>${ph(v.spots[p.id].id,p.name+' '+dots(v.date),'big')}<figcaption>${dots(v.date)}</figcaption></figure>`).join('')}</div>`:'<p class="muted small">아직 찍은 사진이 없습니다.</p>'}</section>`}).join(''):`<p class="sheet pad muted">촬영 지점이 없습니다. 현장 정보 탭에서 추가하세요.</p>`;
+  }
+  if(tab==='info')body=`<section class="sheet pad stack"><dl class="chg">
+   ${[['주소',s.address],['허가번호',s.permit],['조사기관',s.org],['책임조사원',s.manager],['연락처',s.phone],['조사기간',(s.startDate||s.endDate)?dots(s.startDate)+' ~ '+dots(s.endDate):'']].map(([a,b])=>`<dt>${a}</dt><dd>${esc(b||'-')}</dd>`).join('')}</dl>
+   <div class="acts"><button class="btn sm" data-act="site-edit">정보 수정</button><button class="btn sm" data-act="site-end">${s.status==='ended'?'조사 재개로 변경':'조사 종료로 변경'}</button><button class="btn sm" data-act="csv">결과 CSV 받기</button><button class="btn sm dng" data-act="site-del">현장 삭제</button></div></section>
+   <section class="sheet"><div class="cat"><span>촬영 지점</span></div>${(s.spots||[]).map(p=>`<div class="setrow" style="grid-template-columns:minmax(0,1fr) auto"><span>${esc(p.name)}</span><button class="btn sm" data-act="spot-del" data-id="${esc(p.id)}">삭제</button></div>`).join('')}
+   <div class="setrow" style="grid-template-columns:minmax(0,1fr) auto"><input type="text" id="spotNew" placeholder="예: 3호 트렌치 남벽" aria-label="촬영 지점 이름"><button class="btn sm" data-act="spot-add">추가</button></div></section>
+   <section class="sheet"><div class="cat"><span>이 현장 전용 항목</span></div>${(s.custom||[]).length?(s.custom).map(c=>`<div class="setrow" style="grid-template-columns:minmax(0,1fr) auto"><span>${esc(c.text)}</span><button class="btn sm" data-act="custom-del" data-id="${esc(c.id)}">삭제</button></div>`).join(''):'<p class="pad small muted">점검 화면에서 추가할 수 있습니다.</p>'}</section>`;
+  const tabs=[['open',`미해결 ${m.open.length}`],['hist',`점검 이력 ${vis.length}`],['photo','사진 추이'],['info','현장 정보']];
+  return `<nav class="crumb"><a href="#">현장 목록</a><span>›</span><span>${esc(s.name)}</span></nav>
+  <header class="top"><div class="stack" style="gap:6px"><h1>${esc(s.name)}</h1><div class="acts" style="gap:6px">${dueChip(m)}<span class="small muted">${esc(s.org||'')} ${s.manager?'· '+esc(s.manager):''}</span></div></div>
+  ${m.ended?'':`<button class="btn pri" data-act="visit-start">${m.draft?'작성 중인 점검 이어서':'점검 시작'}</button>`}</header>
+  <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${k===tab}" data-act="tab" data-t="${k}">${esc(l)}</button>`).join('')}</div>${body}`;
+}
+function vMissing(){return `<section class="sheet pad stack"><h2>찾을 수 없습니다</h2><p class="muted">삭제되었거나 주소가 잘못되었습니다.</p><a class="btn" href="#">현장 목록으로</a></section>`}
+
+/* ---------- 화면: 점검 작성 ---------- */
+function rowHTML(it,iss){
+  const res=W.results[it.id]||{},r=res.r||'',ph_=res.photos||[];
+  const open=r==='bad'||r==='unk'||res.note||ph_.length||noteOpen.has(it.id);
+  const carry=iss?`<div class="carry"><span class="acts" style="gap:6px">${iss.streak>0?`<span class="pill p-bad">${iss.streak>1?iss.streak+'회 연속 미이행':'지난번 미이행'}</span><span class="muted">최초 ${dots(iss.first)}</span>`:`<span class="pill p-warn">지난번 확인 못 함</span>`}</span>
+    ${iss.last&&iss.last.note?`<span class="muted">지난 메모: ${esc(iss.last.note)}</span>`:''}${iss.last&&(iss.last.photos||[]).length?`<div class="thumbs">${iss.last.photos.map(p=>ph(p,'지난번 '+it.text)).join('')}</div>`:''}</div>`:'';
+  return `<article class="row s-${r||'none'}" id="row-${esc(it.id)}" data-item="${esc(it.id)}">
+   <div><p class="q">${it.key?'<span class="keytag">중점</span>':''}${esc(it.text)}</p>${it.basis?`<p class="basis">${esc(it.basis)}</p>`:''}${carry}</div>
+   <div class="seg" role="group" aria-label="판정">${RS.map(k=>`<button type="button" class="b-${k}" data-act="mark" data-r="${k}" aria-pressed="${r===k}">${RL[k]}</button>`).join('')}</div>
+   ${open?`<textarea data-f="note:${esc(it.id)}" id="n-${esc(it.id)}" placeholder="무엇이 어떻게 지켜지지 않았는지" aria-label="메모">${esc(res.note||'')}</textarea>
+   <div class="thumbs">${ph_.map(p=>`<span class="tw">${ph(p,it.text)}<button class="x" data-act="ph-del" data-t="item:${esc(it.id)}" data-id="${esc(p)}" aria-label="사진 삭제">×</button></span>`).join('')}${up('item:'+it.id,true)}</div>`
+   :`<button class="link" data-act="note-open">메모·사진 추가</button>`}</article>`;
+}
+function progHTML(items){
+  const t=tallyOf(items,W.results),n=items.length||1,done=n-t.none;
+  return `<div class="prog"><span><b class="num">${done}/${items.length}</b> 판정 · 미이행 <b class="num">${t.bad}</b></span><span id="saveLbl" class="muted">${esc(S.saveMsg||'자동 저장')}</span></div>
+  <div class="bar"><u class="a" style="width:${t.ok/n*100}%"></u><u class="b" style="width:${t.bad/n*100}%"></u><u class="c" style="width:${t.unk/n*100}%"></u><u class="d" style="width:${t.na/n*100}%"></u></div>`;
+}
+function vEditor(){
+  const s=S.sites[W.siteId];if(!s)return vMissing();
+  const items=itemsOf(W,s),prior=priorOf(W),prev=prior[prior.length-1],open=trackIssues(prior);
+  const carry=items.filter(i=>open[i.id]),rest=items.filter(i=>!open[i.id]);
+  const cats=[];for(const i of rest){let c=cats.find(x=>x.n===(i.cat||'기타'));if(!c){c={n:i.cat||'기타',l:[]};cats.push(c)}c.l.push(i)}
+  const spots=(s.spots||[]).map(p=>{const pv=[...prior].reverse().find(v=>(v.spots||{})[p.id]),cur=W.spots[p.id];
+    return `<section class="stack" style="gap:6px"><h3>${esc(p.name)}</h3><div class="cmp"><div>${pv?ph(pv.spots[p.id].id,'지난번 '+p.name,'big'):'<div class="empty-ph">이전 사진 없음</div>'}<span class="small muted num">${pv?'이전 '+dots(pv.date):'이전'}</span></div>
+    <div>${cur?ph(cur.id,'이번 '+p.name,'big'):'<div class="empty-ph">이번 사진을 찍어 올리세요</div>'}<div class="acts">${up('spot:'+p.id,false,cur?'다시 올리기':'사진 올리기')}${cur?`<button class="btn sm" data-act="ph-del" data-t="spot:${esc(p.id)}" data-id="${esc(cur.id)}">삭제</button>`:''}</div></div></div></section>`}).join('');
+  const st=W.state||{},ps=prev&&prev.state||{};
+  return `<nav class="crumb"><a href="#">현장 목록</a><span>›</span><a href="#site-${esc(s.id)}">${esc(s.name)}</a><span>›</span><span>점검 작성</span></nav>
+  <header class="stack"><h1>${esc(s.name)} 점검</h1><p class="small muted">${prev?'직전 점검 '+dots(prev.date):'이 현장의 첫 점검입니다'}</p>
+   <div class="grid2"><label class="f">점검일<input type="date" id="vDate" data-f="date" value="${esc(W.date)}"></label><label class="f">점검자<input type="text" id="vWho" data-f="inspector" value="${esc(W.inspector||'')}"></label></div></header>
+  <div class="sticky"><div id="prog">${progHTML(items)}</div><div class="jump">${carry.length?'<button data-act="jump" data-to="secCarry">재확인</button>':''}<button data-act="jump" data-to="secList">체크리스트</button><button data-act="jump" data-to="secPhoto">사진</button><button data-act="jump" data-to="secChg">달라진 것</button><button data-act="jump" data-to="secEnd">마감</button></div></div>
+  ${carry.length?`<section id="secCarry" class="stack"><h2>지난번 못 지킨 것 · 못 본 것 <span class="num">${carry.length}</span></h2><div class="sheet">${carry.map(i=>rowHTML(i,open[i.id])).join('')}</div></section>`:''}
+  <section id="secList" class="stack"><h2>체크리스트</h2>${items.length?`<div class="sheet">${cats.map(c=>`<div class="cat"><span>${esc(c.n)}</span><span class="num muted">${c.l.length}</span></div>${c.l.map(i=>rowHTML(i)).join('')}`).join('')}</div>`:'<p class="sheet pad muted">체크리스트가 비어 있습니다. 체크리스트 관리에서 항목을 추가하세요.</p>'}
+   <div class="acts"><input type="text" id="custNew" placeholder="이 현장에만 필요한 항목" aria-label="현장 전용 항목" style="flex:1 1 220px;width:auto"><button class="btn" data-act="custom-add">항목 추가</button></div></section>
+  <section id="secPhoto" class="stack"><h2>고정 지점 사진</h2><div class="sheet pad stack" style="gap:18px">${spots||'<p class="muted">촬영 지점이 없습니다. 현장 정보 탭에서 추가하세요.</p>'}</div></section>
+  <section id="secChg" class="stack"><h2>달라진 것</h2><div class="sheet pad stack">
+   <div class="grid2">
+    <label class="f">조사 단계${ps.phase?` <span>지난번: ${esc(ps.phase)}</span>`:''}<select id="stPhase" data-f="state:phase"><option value="">선택</option>${PHASES.map(p=>`<option ${st.phase===p?'selected':''}>${p}</option>`).join('')}</select></label>
+    <label class="f">공정률 (%)${ps.progress!=null&&ps.progress!==''?` <span>지난번: ${esc(ps.progress)}%</span>`:''}<input type="number" min="0" max="100" inputmode="numeric" id="stProg" data-f="state:progress" value="${esc(st.progress==null?'':st.progress)}"></label>
+    <label class="f">현장 인력 (명)${ps.crew!=null&&ps.crew!==''?` <span>지난번: ${esc(ps.crew)}명</span>`:''}<input type="number" min="0" inputmode="numeric" id="stCrew" data-f="state:crew" value="${esc(st.crew==null?'':st.crew)}"></label>
+    <label class="f">조사 구역${ps.area?` <span>지난번: ${esc(ps.area)}</span>`:''}<input type="text" id="stArea" data-f="state:area" value="${esc(st.area||'')}"></label></div>
+   <div class="stack" id="chgList">${(W.changes||[]).map(chgRow).join('')}</div>
+   <button class="btn" data-act="chg-add">변경 사항 추가</button></div></section>
+  <section id="secEnd" class="stack"><h2>종합 의견</h2><textarea id="vSum" data-f="summary" placeholder="관리자에게 전달할 내용, 다음 점검 때 볼 것">${esc(W.summary||'')}</textarea>
+   <div class="acts"><button class="btn pri" data-act="finish">점검 마감</button><button class="btn dng" data-act="visit-del">이 점검 삭제</button></div></section>`;
+}
+function chgRow(c){return `<div class="stack" style="gap:6px" data-chg="${esc(c.id)}"><textarea id="c-${esc(c.id)}" data-f="chg:${esc(c.id)}" placeholder="예: 동측 배수로가 새로 설치됨" aria-label="변경 사항">${esc(c.text||'')}</textarea>
+ <div class="acts">${c.photo?`<span class="tw">${ph(c.photo,c.text)}<button class="x" data-act="ph-del" data-t="chg:${esc(c.id)}" data-id="${esc(c.photo)}" aria-label="사진 삭제">×</button></span>`:up('chg:'+c.id,false)}<button class="btn sm" data-act="chg-del" data-id="${esc(c.id)}">삭제</button></div></div>`}
+
+/* ---------- 화면: 결과 ---------- */
+function reportText(v,s,d){
+  const t=tallyOf(v.items||[],v.results||{}),L=[`[${s.name}] ${dots(v.date)} 점검 결과`,`이행 ${t.ok} / 미이행 ${t.bad} / 확인 못 함 ${t.unk} / 해당없음 ${t.na}`];
+  const line=(x,tail)=>{const n=((v.results||{})[x.item.id]||{}).note;return `- ${x.item.text}${tail||''}${n?' : '+n:''}`};
+  if(d.stay.length)L.push('','■ 지속 미이행',...d.stay.map(x=>line(x,` (${x.streak}회 연속)`)));
+  if(d.fresh.length)L.push('','■ 신규 미이행',...d.fresh.map(x=>line(x)));
+  if(d.fixed.length)L.push('','■ 해소',...d.fixed.map(x=>line(x)));
+  if(d.unseen.length)L.push('','■ 이번에 확인 못 한 미이행',...d.unseen.map(x=>line(x)));
+  const ch=(v.changes||[]).filter(c=>c.text);if(ch.length)L.push('','■ 달라진 것',...ch.map(c=>'- '+c.text));
+  if(v.summary)L.push('','■ 종합 의견',v.summary);
+  return L.join('\n');
+}
+function vReport(v){
+  const s=S.sites[v.siteId];if(!s)return vMissing();
+  const prior=priorOf(v),prev=prior[prior.length-1],d=diffVisit(prior,v),t=tallyOf(v.items||[],v.results||{});
+  const lst=(title,cls,arr)=>arr.length?`<div class="grp"><h3><span class="pill ${cls}">${title} ${arr.length}</span></h3><ul>${arr.map(x=>{const r=(v.results||{})[x.item.id]||{};return `<li>${esc(x.item.text)}${x.streak>1&&cls==='p-bad'?` <b>(${x.streak}회 연속)</b>`:''}${r.note?`<br><span class="quote">${esc(r.note)}</span>`:''}${(r.photos||[]).length?`<div class="thumbs" style="margin-top:6px">${r.photos.map(p=>ph(p,x.item.text)).join('')}</div>`:''}</li>`}).join('')}</ul></div>`:'';
+  const stCh=prev?STATE_F.filter(f=>String((prev.state||{})[f.k]??'')!==String((v.state||{})[f.k]??'')):[];
+  const unk=(v.items||[]).filter(i=>((v.results||{})[i.id]||{}).r==='unk'&&!d.unseen.some(x=>x.item.id===i.id));
+  const pair=(s.spots||[]).map(p=>{const c=(v.spots||{})[p.id];if(!c)return'';const pv=[...prior].reverse().find(x=>(x.spots||{})[p.id]);
+    return `<section class="stack" style="gap:6px"><h3>${esc(p.name)}</h3><div class="cmp"><div>${pv?ph(pv.spots[p.id].id,'이전 '+p.name,'big'):'<div class="empty-ph">이전 사진 없음</div>'}<span class="small muted num">${pv?dots(pv.date):''}</span></div><div>${ph(c.id,p.name,'big')}<span class="small muted num">${dots(v.date)}</span></div></div></section>`}).join('');
+  return `<nav class="crumb"><a href="#">현장 목록</a><span>›</span><a href="#site-${esc(s.id)}">${esc(s.name)}</a><span>›</span><span>${dots(v.date)}</span></nav>
+  <header class="top"><div><h1>${esc(s.name)}</h1><p class="muted small">${dots(v.date)} 점검${v.inspector?' · '+esc(v.inspector):''}${prev?' · 비교 대상 '+dots(prev.date):''}</p></div>
+  <div class="acts"><button class="btn" data-act="copy">결과 문구 복사</button><button class="btn" data-act="reopen">수정</button></div></header>
+  <section class="brief" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><b>${t.ok}</b><span class="small muted">이행</span></div><div class="${t.bad?'hot':''}"><b>${t.bad}</b><span class="small muted">미이행</span></div><div><b>${t.unk}</b><span class="small muted">확인 못 함</span></div><div><b>${t.na}</b><span class="small muted">해당없음</span></div></section>
+  <section class="sheet pad stack"><h2>지난번과 비교</h2>
+   ${lst('지속 미이행','p-bad',d.stay)}${lst('신규 미이행','p-bad',d.fresh)}${lst('해소','p-ok',d.fixed)}${lst('미이행인데 이번에 확인 못 함','p-warn',d.unseen)}${lst('확인 못 함','p-warn',unk.map(i=>({item:i})))}
+   ${!(d.stay.length||d.fresh.length||d.fixed.length||d.unseen.length||unk.length)?'<p class="muted">판정이 달라진 항목이 없습니다.</p>':''}</section>
+  ${stCh.length||(v.changes||[]).some(c=>c.text||c.photo)?`<section class="sheet pad stack"><h2>달라진 것</h2>
+   ${stCh.length?`<dl class="chg">${stCh.map(f=>`<dt>${f.label}</dt><dd>${esc((prev.state||{})[f.k]??'-')}${f.unit||''} → <b>${esc((v.state||{})[f.k]??'-')}${f.unit||''}</b></dd>`).join('')}</dl>`:''}
+   ${(v.changes||[]).filter(c=>c.text||c.photo).map(c=>`<div class="stack" style="gap:6px"><p>${esc(c.text)}</p>${c.photo?`<div class="thumbs">${ph(c.photo,c.text)}</div>`:''}</div>`).join('')}</section>`:''}
+  ${pair?`<section class="sheet pad stack" style="gap:18px"><h2>사진 비교</h2>${pair}</section>`:''}
+  ${v.summary?`<section class="sheet pad stack"><h2>종합 의견</h2><p>${esc(v.summary).replace(/\n/g,'<br>')}</p></section>`:''}`;
+}
+
+/* ---------- 화면: 체크리스트 관리 ---------- */
+function vChecklist(){
+  const items=S.config.items||[],cats=[...new Set(items.map(i=>i.cat||'기타'))];
+  return `<nav class="crumb"><a href="#">현장 목록</a><span>›</span><span>체크리스트 관리</span></nav>
+  <header class="stack"><h1>체크리스트 관리</h1><p class="muted small">여기서 고친 내용은 새 점검부터 적용되고, 마감한 점검은 그대로 남습니다. 중점 항목은 빨간 표시가 붙습니다.</p></header>
+  <section class="sheet pad"><label class="f">점검 주기<select id="cfgInt" data-cfg="interval">${[1,2,3,6].map(n=>`<option value="${n}" ${(S.config.interval||1)===n?'selected':''}>${n}개월</option>`).join('')}</select></label></section>
+  ${cats.length?`<section class="sheet">${cats.map(c=>`<div class="cat"><span>${esc(c)}</span></div>${items.filter(i=>(i.cat||'기타')===c).map(i=>`<div class="setrow"><input type="text" id="t-${esc(i.id)}" data-item-text="${esc(i.id)}" value="${esc(i.text)}" aria-label="항목 내용"><label class="chk"><input type="checkbox" data-item-key="${esc(i.id)}" ${i.key?'checked':''}>중점</label><button class="btn sm" data-act="item-del" data-id="${esc(i.id)}">삭제</button></div>`).join('')}`).join('')}</section>`:'<p class="sheet pad muted">항목이 없습니다. 아래에서 첫 항목을 추가하세요.</p>'}
+  <section class="sheet pad stack"><h2>항목 추가</h2><div class="grid2"><label class="f">분류<input type="text" id="newCat" list="catL" placeholder="예: 안전"><datalist id="catL">${cats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label><label class="f">내용<input type="text" id="newTxt"></label></div><button class="btn pri" data-act="item-add">추가</button></section>
+  <section class="sheet pad stack"><h2>백업과 복원</h2><p class="small muted">기록은 이 기기의 이 브라우저에만 있습니다. 브라우저 데이터를 지우면 함께 사라지므로 점검 뒤 백업 파일을 받아 두세요. 다른 기기로 옮길 때도 백업 파일을 복원하면 됩니다.</p><div class="acts"><button class="btn" data-act="backup">백업 받기 (사진 포함)</button><label class="btn"><input class="vh" type="file" accept=".json,application/json" id="restoreF">백업 복원</label></div></section>`;
+}
+
+/* ---------- 렌더·라우팅 ---------- */
+const hashNow=()=>location.hash.slice(1);
+function render(){
+  if(S.noDb){$app.innerHTML=`<section class="sheet pad stack"><h1>발굴현장 월간 점검</h1><p>이 브라우저에서는 기기에 저장할 수 없습니다. 시크릿 창이 아닌 일반 창에서 열어 주세요.</p></section>`;return}
+  if(S.got<3){$app.innerHTML=`<p class="muted">${'불러오는 중…'}</p>`;return}
+  const h=hashNow();
+  if(h.startsWith('visit-')){
+    const id=h.slice(6),v=S.visits[id];
+    if(!v){W=null;$app.innerHTML=vMissing();return}
+    if(v.status==='draft'){
+      if(!W||W.id!==id){W=clone(v);W.results=W.results||{};W.spots=W.spots||{};W.changes=W.changes||[];W.state=W.state||{};
+        try{const b=JSON.parse(localStorage.getItem('draft-'+id)||'null');if(b&&b.updatedAt>(W.updatedAt||0)){W=b;dirty=true;schedule()}}catch(e){}}
+      $app.innerHTML=vEditor();return}
+    W=null;$app.innerHTML=vReport(v);return}
+  W=null;
+  if(h.startsWith('site-'))$app.innerHTML=vSite(h.slice(5));
+  else if(h==='checklist')$app.innerHTML=vChecklist();
+  else $app.innerHTML=vHome();
+}
+function refresh(){ // 데이터 변경 수신: 작성 중이거나 입력 중이면 화면을 건드리지 않는다
+  if(W&&hashNow()==='visit-'+W.id)return;
+  const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)&&a.value)return;
+  render();
+}
+function nav(h){if(location.hash==='#'+h)render();else location.hash=h}
+async function leave(){if(W){clearTimeout(saveT);await flush()}}
+window.addEventListener('hashchange',async()=>{await leave();window.scrollTo(0,0);render()});
+
+/* ---------- 저장 ---------- */
+function label(m){S.saveMsg=m;const e=document.getElementById('saveLbl');if(e)e.textContent=m}
+function schedule(){clearTimeout(saveT);saveT=setTimeout(flush,700)}
+function touch(){W.updatedAt=Date.now();dirty=true;label('저장 중…');try{localStorage.setItem('draft-'+W.id,JSON.stringify(W))}catch(e){}schedule()}
+async function flush(){
+  if(!W||!dirty)return;if(saving){again=true;return}
+  saving=true;dirty=false;const snap=clone(W);
+  try{await db.doc('visits/'+snap.id).set(snap);S.visits[snap.id]=snap;label('저장됨');try{if(!dirty)localStorage.removeItem('draft-'+snap.id)}catch(e){}}
+  catch(e){dirty=true;label('저장 실패. 다시 시도합니다');setTimeout(flush,15000)}
+  saving=false;if(again){again=false;flush()}
+}
+async function write(fn,okMsg){try{await fn();if(okMsg)toast(okMsg);return true}catch(e){toast(e&&e.code==='quota_exceeded'?'기기 저장 공간이 부족합니다. 백업 후 오래된 사진을 지워 주세요.':'저장하지 못했습니다. 다시 시도하세요.');return false}}
+const saveCfg=()=>write(()=>db.doc('meta/config').set(clone(S.config)));
+const siteUp=(s,p)=>{Object.assign(s,p);return write(()=>db.doc('sites/'+s.id).update(clone(p)))};
+
+/* ---------- 대화상자 ---------- */
+function ask(title,body,ok,danger){return new Promise(res=>{
+  $ov.innerHTML=`<div class="ov"><div class="dlg" role="dialog" aria-modal="true"><h2>${esc(title)}</h2><p>${esc(body)}</p><div class="acts"><button class="btn ${danger?'dng':'pri'}" id="dOk">${esc(ok)}</button><button class="btn" id="dNo">취소</button></div></div></div>`;
+  const done=v=>{$ov.innerHTML='';res(v)};document.getElementById('dOk').onclick=()=>done(true);document.getElementById('dNo').onclick=()=>done(false);document.getElementById('dOk').focus()})}
+function siteForm(s){
+  const v=s||{};
+  const f=(id,l,val,t)=>`<label class="f">${l}<input type="${t||'text'}" id="${id}" value="${esc(val||'')}"></label>`;
+  $ov.innerHTML=`<div class="ov"><form class="dlg" id="siteF"><h2>${s?'현장 정보 수정':'현장 추가'}</h2>${f('fName','현장명 (필수)',v.name)}${f('fAddr','주소',v.address)}<div class="grid2">${f('fPermit','허가번호',v.permit)}${f('fOrg','조사기관',v.org)}${f('fMgr','책임조사원',v.manager)}${f('fTel','연락처',v.phone,'tel')}${f('fStart','조사 시작일',v.startDate,'date')}${f('fEnd','조사 종료 예정일',v.endDate,'date')}</div>
+  <div class="acts"><button class="btn pri" type="submit">저장</button><button class="btn" type="button" id="fNo">취소</button></div></form></div>`;
+  document.getElementById('fNo').onclick=()=>{$ov.innerHTML=''};
+  document.getElementById('siteF').addEventListener('submit',async e=>{e.preventDefault();
+    const g=i=>document.getElementById(i).value.trim(),name=g('fName');if(!name){toast('현장명을 입력하세요.');return}
+    const p={name,address:g('fAddr'),permit:g('fPermit'),org:g('fOrg'),manager:g('fMgr'),phone:g('fTel'),startDate:g('fStart'),endDate:g('fEnd')};
+    if(s){await siteUp(S.sites[s.id],p);$ov.innerHTML='';render()}
+    else{const id=uid('s');const doc={...p,id,status:'active',createdAt:Date.now(),custom:[],spots:['전경','유물 보관소','안전시설','배수·덮개'].map((n,i)=>({id:'p'+i,name:n}))};
+      if(await write(()=>db.doc('sites/'+id).set(doc))){S.sites[id]=doc;$ov.innerHTML='';nav('site-'+id)}}
+  });
+  document.getElementById('fName').focus();
+}
+function lightbox(id,cap){$ov.innerHTML=`<div class="ov" data-act="ov-close"><div class="lb"><img src="${esc(src(id))}" alt="${esc(cap)}"><span>${esc(cap)}</span><button class="btn" data-act="ov-close">닫기</button></div></div>`}
+
+/* ---------- 사진 ---------- */
+async function shrink(file){
+  let bmp;try{bmp=await createImageBitmap(file)}catch(e){if(/^image\/(jpeg|png|webp)$/.test(file.type))return file;throw {code:'decode'}}
+  const k=Math.min(1,1800/Math.max(bmp.width,bmp.height)),c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);
+  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+  return new Promise((res,rej)=>c.toBlob(b=>b?res(b):rej({code:'decode'}),'image/jpeg',.82));
+}
+async function addPhotos(files,target){
+  if(!assets){toast('사진을 저장할 수 없습니다.');return}
+  const [kind,key]=[target.slice(0,target.indexOf(':')),target.slice(target.indexOf(':')+1)];
+  for(const file of files){
+    label('사진 올리는 중…');
+    try{
+      const b=await shrink(file),r=await assets.upload(b,{type:b.type||'image/jpeg'});
+      if(kind==='item'){const o=W.results[key]=W.results[key]||{};(o.photos=o.photos||[]).push(r.id)}
+      if(kind==='spot'){const old=W.spots[key];W.spots[key]={id:r.id,at:Date.now()};if(old)assets.delete(old.id).catch(()=>{})}
+      if(kind==='chg'){const c=W.changes.find(x=>x.id===key);if(c)c.photo=r.id}
+      touch();
+    }catch(e){toast(e&&e.code==='decode'?'이 사진 형식을 읽지 못했습니다. JPG나 PNG로 올려 주세요.':e&&e.code==='quota_exceeded'?'기기 저장 공간이 부족합니다.':'사진을 저장하지 못했습니다. 다시 시도하세요.');label('사진 업로드 실패')}
+  }
+  rerenderKeep();
+}
+function rerenderKeep(){const y=window.scrollY;$app.innerHTML=vEditor();window.scrollTo(0,y)}
+
+/* ---------- 이벤트 ---------- */
+async function startVisit(s){
+  const m=meta(s);if(m.draft){nav('visit-'+m.draft.id);return}
+  const id=uid('v'),v={id,siteId:s.id,date:today(),status:'draft',inspector:(m.last&&m.last.inspector)||'',results:{},spots:{},changes:[],state:clone((m.last&&m.last.state)||{}),summary:'',createdAt:Date.now(),updatedAt:Date.now()};
+  if(await write(()=>db.doc('visits/'+id).set(v))){S.visits[id]=v;nav('visit-'+id)}
+}
+async function finish(){
+  const s=S.sites[W.siteId],items=itemsOf(W,s),t=tallyOf(items,W.results);
+  if(t.none&&!await ask('판정하지 않은 항목이 있습니다',`${t.none}개 항목을 확인 못 함으로 기록하고 마감합니다. 다음 점검 때 다시 표시됩니다.`,'마감'))return;
+  for(const i of items){const o=W.results[i.id]=W.results[i.id]||{};if(!o.r)o.r='unk'}
+  W.items=clone(items);W.status='done';W.finishedAt=Date.now();W.updatedAt=Date.now();
+  clearTimeout(saveT);const snap=clone(W);
+  if(await write(()=>db.doc('visits/'+snap.id).set(snap),'점검을 마감했습니다.')){S.visits[snap.id]=snap;try{localStorage.removeItem('draft-'+snap.id)}catch(e){}dirty=false;W=null;render();window.scrollTo(0,0)}
+  else{W.status='draft'}
+}
+function photosOf(v){const a=[];for(const k in v.results||{})a.push(...(v.results[k].photos||[]));for(const k in v.spots||{})a.push(v.spots[k].id);for(const c of v.changes||[])if(c.photo)a.push(c.photo);return a}
+async function delVisit(id){
+  const v=W&&W.id===id?W:S.visits[id];
+  await db.doc('visits/'+id).delete();delete S.visits[id];
+  if(assets)for(const p of photosOf(v))await assets.delete(p).catch(()=>{});
+}
+function csv(s){
+  const rows=[['현장','점검일','점검자','분류','항목','결과','메모']];
+  for(const v of doneOf(s.id))for(const i of v.items||[]){const r=(v.results||{})[i.id]||{};rows.push([s.name,v.date,v.inspector||'',i.cat||'',i.text,RL[r.r]||'',r.note||''])}
+  return '﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+}
+async function save(filename,data){if(!downloads){toast('이 화면에서는 파일을 받을 수 없습니다.');return}
+  try{await downloads.save({filename,data})}catch(e){if(e&&e.code!=='declined')toast('파일을 받지 못했습니다.')}}
+async function copy(text){try{await navigator.clipboard.writeText(text);toast('복사했습니다.')}catch(e){
+  $ov.innerHTML=`<div class="ov"><div class="dlg"><h2>직접 복사하세요</h2><textarea id="cpT" style="min-height:240px">${esc(text)}</textarea><button class="btn" data-act="ov-close">닫기</button></div></div>`;document.getElementById('cpT').select()}}
+
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const act=b.dataset.act,h=hashNow(),siteId=h.startsWith('site-')?h.slice(5):W?W.siteId:null,s=siteId&&S.sites[siteId];
+  if(act==='ov-close'){if(b.classList.contains('ov')&&e.target!==b)return;$ov.innerHTML='';return}
+  if(act==='zoom')return lightbox(b.dataset.id,b.dataset.cap);
+  if(act==='jump'){const t=document.getElementById(b.dataset.to);if(t)t.scrollIntoView({block:'start'});window.scrollBy(0,-96);return}
+  if(act==='mark'||act==='note-open'){
+    const row=b.closest('.row'),id=row.dataset.item,ta=row.querySelector('textarea');
+    if(act==='note-open')noteOpen.add(id);
+    else{const o=W.results[id]=W.results[id]||{};o.r=o.r===b.dataset.r?undefined:b.dataset.r;if(!o.r)delete o.r;touch()}
+    const s2=S.sites[W.siteId],open=trackIssues(priorOf(W)),it=itemsOf(W,s2).find(i=>i.id===id);
+    row.outerHTML=rowHTML(it,open[id]);
+    document.getElementById('prog').innerHTML=progHTML(itemsOf(W,s2));return}
+  if(act==='tab'){S.tab=b.dataset.t;render();return}
+  if(act==='site-new')return siteForm();
+  if(act==='site-edit')return siteForm(s);
+  if(act==='site-end'){await siteUp(s,{status:s.status==='ended'?'active':'ended'});render();return}
+  if(act==='site-del'){if(!await ask('현장을 삭제할까요?',`${s.name}의 점검 기록 ${allOf(s.id).length}건과 사진이 모두 지워지고 되돌릴 수 없습니다.`,'삭제',true))return;
+    await write(async()=>{for(const v of allOf(s.id))await delVisit(v.id);await db.doc('sites/'+s.id).delete()},'삭제했습니다.');delete S.sites[s.id];nav('');return}
+  if(act==='csv')return save('dig-result-'+s.id+'-'+today()+'.csv',csv(s));
+  if(act==='backup')return backup().catch(()=>toast('백업하지 못했습니다.'));
+  if(act==='spot-add'){const i=document.getElementById('spotNew'),n=i.value.trim();if(!n)return;await siteUp(s,{spots:[...(s.spots||[]),{id:uid('p'),name:n}]});render();return}
+  if(act==='spot-del'){await siteUp(s,{spots:(s.spots||[]).filter(p=>p.id!==b.dataset.id)});render();return}
+  if(act==='custom-del'){await siteUp(s,{custom:(s.custom||[]).filter(p=>p.id!==b.dataset.id)});render();return}
+  if(act==='visit-start')return startVisit(s);
+  if(act==='custom-add'){const i=document.getElementById('custNew'),t=i.value.trim();if(!t)return;const it={id:uid('c'),cat:'현장 전용',text:t};await siteUp(s,{custom:[...(s.custom||[]),it]});if(W.items&&W.items.length){W.items.push(it);touch()}rerenderKeep();return}
+  if(act==='chg-add'){const c={id:uid('c'),text:''};W.changes.push(c);touch();document.getElementById('chgList').insertAdjacentHTML('beforeend',chgRow(c));document.getElementById('c-'+c.id).focus();return}
+  if(act==='chg-del'){const c=W.changes.find(x=>x.id===b.dataset.id);if(c&&c.photo&&assets)assets.delete(c.photo).catch(()=>{});W.changes=W.changes.filter(x=>x.id!==b.dataset.id);touch();rerenderKeep();return}
+  if(act==='ph-del'){if(!await ask('사진을 삭제할까요?','삭제하면 되돌릴 수 없습니다.','삭제',true))return;
+    const t=b.dataset.t,k=t.slice(t.indexOf(':')+1),id=b.dataset.id;
+    if(t.startsWith('item:')){const o=W.results[k];o.photos=(o.photos||[]).filter(p=>p!==id)}
+    if(t.startsWith('spot:'))delete W.spots[k];
+    if(t.startsWith('chg:')){const c=W.changes.find(x=>x.id===k);if(c)delete c.photo}
+    if(assets)assets.delete(id).catch(()=>{});touch();rerenderKeep();return}
+  if(act==='finish')return finish();
+  if(act==='visit-del'){if(!await ask('이 점검을 삭제할까요?','작성한 내용과 사진이 지워지고 되돌릴 수 없습니다.','삭제',true))return;const sid=W.siteId,id=W.id;clearTimeout(saveT);dirty=false;await write(()=>delVisit(id),'삭제했습니다.');try{localStorage.removeItem('draft-'+id)}catch(e){}W=null;nav('site-'+sid);return}
+  if(act==='copy'){const v=S.visits[h.slice(6)],st=S.sites[v.siteId];return copy(reportText(v,st,diffVisit(priorOf(v),v)))}
+  if(act==='reopen'){const id=h.slice(6);S.visits[id]=clone(S.visits[id]);S.visits[id].status='draft';await write(()=>db.doc('visits/'+id).update({status:'draft'}));render();window.scrollTo(0,0);return}
+  if(act==='item-del'){S.config.items=S.config.items.filter(i=>i.id!==b.dataset.id);await saveCfg();render();return}
+  if(act==='item-add'){const c=document.getElementById('newCat').value.trim(),t=document.getElementById('newTxt').value.trim();if(!c||!t){toast('분류와 내용을 입력하세요.');return}S.config.items=[...S.config.items,{id:uid('i'),cat:c,text:t}];await saveCfg();document.getElementById('newTxt').value='';document.getElementById('newCat').value='';render();return}
+});
+document.addEventListener('input',e=>{
+  const f=e.target.dataset&&e.target.dataset.f;if(!f||!W)return;
+  const v=e.target.value,[k,id]=[f.split(':')[0],f.split(':').slice(1).join(':')];
+  if(k==='note'){(W.results[id]=W.results[id]||{}).note=v}
+  else if(k==='state'){W.state[id]=v}
+  else if(k==='chg'){const c=W.changes.find(x=>x.id===id);if(c)c.text=v}
+  else W[k]=v;
+  touch();
+});
+document.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.id==='restoreF'){const f=t.files[0];t.value='';if(f)restore(f);return}
+  if(t.dataset.up){const fs=[...t.files];t.value='';if(fs.length)addPhotos(fs,t.dataset.up);return}
+  if(t.dataset.f==='date'&&W){rerenderKeep();return}
+  if(t.dataset.cfg==='interval'){S.config.interval=Number(t.value);await saveCfg();return}
+  if(t.dataset.itemText){const i=S.config.items.find(x=>x.id===t.dataset.itemText);if(i&&t.value.trim()){i.text=t.value.trim();await saveCfg()}return}
+  if(t.dataset.itemKey){const i=S.config.items.find(x=>x.id===t.dataset.itemKey);if(i){if(t.checked)i.key=true;else delete i.key;await saveCfg()}}
+});
+document.addEventListener('error',e=>{if(e.target&&e.target.tagName==='IMG')e.target.classList.add('broken')},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$ov.innerHTML=''});
+
+/* ---------- 시작 ---------- */
+if('serviceWorker' in navigator&&location.protocol==='https:'||location.hostname==='localhost'){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+(async()=>{
+  try{
+    await IDB.open();db=makeDb();assets=makeAssets();downloads=makeDownloads();await loadAll();
+    if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
+    S.got=3;render();
+  }catch(e){S.noDb=true;render()}
+})();
+</script>
+</body>
+</html>
