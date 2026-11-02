@@ -141,6 +141,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .people i{font:600 15px var(--sans);background:var(--accent-bg);color:var(--ink);padding:3px 10px;border-radius:999px}
 .span{height:8px;border-radius:4px;background:var(--sheet);overflow:hidden;margin-top:4px}
 .span u{display:block;height:100%;background:var(--pri)}
+.memo{display:flex;flex-direction:column;gap:3px;font-size:14px;line-height:1.55}
+.memo .mh{font-weight:700;margin-top:6px}
+.memo .mh:first-child{margin-top:0}
 .pv{background:var(--ground);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .pv-t{font-size:16px;font-weight:700;line-height:1.4}
 .empty-ph{aspect-ratio:4/3;border:1px dashed var(--rule);border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--ink2);font-size:13px;padding:8px}
@@ -222,24 +225,41 @@ function tallyOf(items,results){const t={ok:0,bad:0,unk:0,na:0,none:0};for(const
 /* 팀 일정 문구 해석: [제목] 줄이 현장 하나를 시작하고, '일정'으로 끝나는 제목은 팀 머리글이다 */
 const PASTE_KEYS={'조사기간':'period','기간':'period','업무시간':'hours','작업시간':'hours','면적':'areaText','조사면적':'areaText','조사일수':'days','일수':'days','투입인원':'staff','조사원':'staff','인원':'staff','장비':'equipment','인부':'labor','작업인원':'labor','주소':'address','위치':'address','소재지':'address','허가번호':'permit','조사기관':'org','책임조사원':'manager','연락처':'phone'};
 function parsePeriod(v){
-  const [a,b]=String(v).split(/~|∼|～|부터/),one=(t,yy)=>{const m=String(t||'').match(/(?:(\d{4})\D+)?(\d{1,2})\D+(\d{1,2})/);if(!m)return'';const y=m[1]||yy;return y?y+'-'+pad(+m[2])+'-'+pad(+m[3]):''};
-  const start=one(a,'');let end=one(b,start.slice(0,4));if(start&&end&&end<start)end=(+end.slice(0,4)+1)+end.slice(4);return{start,end};
+  const parts=String(v).split(/~|∼|～|부터/),clean=t=>String(t||'').replace(/[(（][^)）]*[)）]?/g,' ');
+  const one=(t,yy)=>{t=clean(t);let m=t.match(/(\d{4})\D+(\d{1,2})(?:\D+(\d{1,2}))?/);if(m)return{y:+m[1],mo:+m[2],d:m[3]?+m[3]:0};m=t.match(/(\d{1,2})\D+(\d{1,2})/);return m&&yy?{y:+yy,mo:+m[1],d:+m[2]}:null};
+  const iso=x=>x.y+'-'+pad(x.mo)+'-'+pad(x.d);
+  const a=one(parts[0],''),start=a&&a.d?iso(a):'';
+  const b=one(parts[1],a?a.y:0);let end='',endMonth=false;
+  if(b){if(!b.d){b.d=new Date(b.y,b.mo,0).getDate();endMonth=true}end=iso(b);if(start&&end<start)end=(b.y+1)+end.slice(4)}
+  const notes=[...String(v).matchAll(/[(（]([^)）]*)[)）]?/g)].map(x=>x[1].trim()).filter(x=>x&&!/요일$|^[월화수목금토일]$/.test(x));
+  if(!b&&parts[1]&&parts[1].trim()&&!notes.length)notes.push(parts[1].trim());
+  return{start,end,endMonth,note:notes.join(', ')};
 }
+const NOTE_KEYS=new Set(['특이사항','비고','참고','참고사항','기타']);
 function parseSchedule(text){
-  const out={team:'',sites:[]};let cur=null;
+  const out={team:'',sites:[]};let cur=null,inNote=false;
+  const start=n=>{cur={name:n,extra:[]};out.sites.push(cur);inNote=false};
   for(const raw of String(text||'').split(/\r?\n/)){
     const line=raw.trim();if(!line)continue;
-    const b=line.match(/^[\[［【](.+?)[\]］】]$/);
-    if(b){const t=b[1].trim();
-      if(/일정$/.test(t)){const m=t.match(/조사\s*\d+\s*팀|\S+팀/);if(m)out.team=m[0].replace(/\s/g,'');continue}
-      cur={name:t,extra:[]};out.sites.push(cur);continue}
+    const b=line.match(/^[\[［【](.+?)[\]］】]\s*(?:[:：]\s*(.*))?$/);
+    if(b){const t=b[1].trim(),rest=(b[2]||'').trim();
+      if(/^(현장명|조사명|사업명)$/.test(t)){if(rest)start(rest);continue}
+      if(/일정$/.test(t)){const m=t.match(/조사\s*\d+\s*팀|\S+팀/);if(m)out.team=m[0].replace(/\s/g,'');inNote=false;continue}
+      start(t);continue}
+    if(inNote){cur.notes=(cur.notes?cur.notes+'\n':'')+line;continue}
     const m=line.match(/^([^:：]+?)\s*[:：]\s*(.*)$/);if(!m)continue;
-    if(!cur){cur={name:'',extra:[]};out.sites.push(cur)}
-    const k=m[1].replace(/\s/g,''),v=m[2].trim(),f=PASTE_KEYS[k];
-    if(f==='period'){const p=parsePeriod(v);if(p.start)cur.startDate=p.start;if(p.end)cur.endDate=p.end}
+    const k=m[1].replace(/\s/g,''),v=m[2].trim();
+    if(/^(현장명|조사명|사업명)$/.test(k)){if(v)start(v);continue}
+    if(!cur)start('');
+    const f=PASTE_KEYS[k];
+    if(NOTE_KEYS.has(k)){if(v)cur.notes=(cur.notes?cur.notes+'\n':'')+v;inNote=true}
+    else if(f==='period'){const p=parsePeriod(v);if(p.start)cur.startDate=p.start;if(p.end)cur.endDate=p.end;cur.endMonth=p.endMonth;cur.periodNote=p.note}
     else if(f)cur[f]=v;else cur.extra.push([k,v]);
   }
-  for(const c of out.sites){if(out.team)c.team=out.team;if(!c.extra.length)delete c.extra}
+  for(const c of out.sites){
+    if(out.team)c.team=out.team;if(!c.extra.length)delete c.extra;
+    if(!c.permit&&c.notes){const m=c.notes.match(/이번\s*허가번호\s*[:：]?\s*(\d{4}-\d+)/)||c.notes.match(/허가번호\s*[:：]?\s*(\d{4}-\d+)/);if(m)c.permit=m[1]+'호'}
+  }
   return out;
 }
 function csvCell(s){s=String(s==null?'':s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
@@ -356,23 +376,29 @@ function vHome(){
    <div class="${bad?'hot':''}"><b>${bad}</b><span class="small muted">미해결 미이행</span></div></section>
   ${list.length?`<section class="sites">`+list.map(({s,m})=>`<a class="site" href="#site-${esc(s.id)}"><div class="stack" style="gap:4px"><span class="nm">${esc(s.name)}</span>
    <span class="ln">${dueChip(m)}${m.bad?`<span class="pill p-bad">미이행 ${m.bad}</span>`:''}${m.unk?`<span class="pill p-warn">확인 못 함 ${m.unk}</span>`:''}</span>
-   <span class="small muted">${esc(s.team||s.org||'소속 미입력')} · ${s.startDate?dots(s.startDate)+' ~ '+dots(s.endDate)+' · ':''}최근 점검 ${m.last?dots(m.last.date):'없음'}</span></div>${strata(m.done)}</a>`).join('')+`</section>`
+   <span class="small muted">${esc(s.team||s.org||'소속 미입력')} · ${s.startDate?dots(s.startDate)+' 시작 · ':''}최근 점검 ${m.last?dots(m.last.date):'없음'}</span></div>${strata(m.done)}</a>`).join('')+`</section>`
   :`<section class="sheet pad stack"><h2>등록된 현장이 없습니다</h2><p class="muted">팀 일정 문구를 일정 붙여넣기에 넣으면 현장이 만들어집니다.</p></section>`}`;
 }
 
 /* ---------- 현장 정보 카드 ---------- */
-function splitNote(v){const m=String(v||'').match(/^([^(（]+)[(（](.*?)[)）]?\s*$/);return m&&m[2].length>4?[m[1].trim(),m[2].trim()]:[String(v||'').trim(),'']}
+function splitNote(v){
+  v=String(v||'').trim();const i=v.search(/[(（]/);if(i<1)return[v,''];
+  const note=v.slice(i+1).replace(/[)）]\s*[_,]?\s*/g,' · ').replace(/_/g,' · ').replace(/(\s·\s)+$/,'').trim();
+  return note.length>4||/\s·\s/.test(note)?[v.slice(0,i).trim(),note]:[v,''];
+}
 function fact(label,v,cls){const[a,b]=splitNote(v);return `<div class="fact ${cls||''}"><span>${esc(label)}</span><b>${esc(a)}</b>${b?`<small>${esc(b)}</small>`:''}</div>`}
 function factPeriod(s){
   if(!s.startDate)return'';const t=s.endDate?dayDiff(s.endDate,s.startDate)+1:0,d=dayDiff(today(),s.startDate)+1;
-  const msg=!t?'':d<1?`시작까지 ${1-d}일`:d>t?`기간 종료 · 전체 ${t}일`:`${d}일째 · 전체 ${t}일`;
-  return `<div class="fact wide lead"><span>조사기간</span><b class="num">${dots(s.startDate)} ~ ${dots(s.endDate)}</b>${t?`<small>${msg}</small><div class="span"><u style="width:${Math.max(0,Math.min(100,d/t*100))}%"></u></div>`:''}</div>`;
+  const est=s.endMonth,msg=!t?'':d<1?`시작까지 ${1-d}일`:d>t?(est?'종료 예정 월 지남':`기간 종료 · 전체 ${t}일`):est?`${d}일째`:`${d}일째 · 전체 ${t}일`,end=!s.endDate?'미정':est?dots(s.endDate.slice(0,7))+'.':dots(s.endDate),note=[msg,s.periodNote].filter(Boolean).join(' · ');
+  return `<div class="fact wide lead"><span>조사기간</span><b class="num">${dots(s.startDate)} ~ ${end}</b>${note?`<small>${esc(note)}</small>`:''}${t&&!est?`<div class="span"><u style="width:${Math.max(0,Math.min(100,d/t*100))}%"></u></div>`:''}</div>`;
 }
 function factPeople(s){const p=String(s.staff||'').split(/[,，、·]/).map(x=>x.trim()).filter(Boolean);if(!p.length)return'';return `<div class="fact wide"><span>투입인원 ${p.length}명</span><div class="people">${p.map(n=>`<i>${esc(n)}</i>`).join('')}</div></div>`}
+function factNotes(s){if(!s.notes)return'';
+  return `<div class="fact wide"><span>특이사항</span><div class="memo">${s.notes.split('\n').map(l=>/^\d+[.)]/.test(l)?`<p class="mh">${esc(l)}</p>`:`<p>${esc(l)}</p>`).join('')}</div></div>`}
 function siteFacts(s){
   const row=[['면적',s.areaText],['조사일수',s.days],['업무시간',s.hours],['장비',s.equipment],['인부',s.labor],['담당 팀',s.team],['허가번호',s.permit],['조사기관',s.org],['책임조사원',s.manager],['연락처',s.phone],...(s.extra||[])].filter(x=>x[1]);
   const odd=row.length%2;
-  return `<div class="facts">${factPeriod(s)}${s.address?fact('주소',s.address,'wide'):''}${factPeople(s)}${row.map((r,i)=>fact(r[0],r[1],odd&&i===row.length-1?'wide':'')).join('')}</div>`;
+  return `<div class="facts">${factPeriod(s)}${s.address?fact('주소',s.address,'wide'):''}${factPeople(s)}${row.map((r,i)=>fact(r[0],r[1],odd&&i===row.length-1?'wide':'')).join('')}${factNotes(s)}</div>`;
 }
 const blanks=s=>[['주소',s.address],['허가번호',s.permit],['조사기관',s.org],['책임조사원',s.manager],['연락처',s.phone]].filter(x=>!x[1]).map(x=>x[0]);
 
@@ -581,6 +607,7 @@ function siteForm(s){
   document.getElementById('siteF').addEventListener('submit',async e=>{e.preventDefault();
     const g=i=>document.getElementById(i).value.trim(),name=g('fName');if(!name){toast('현장명을 입력하세요.');return}
     const p={name,address:g('fAddr'),permit:g('fPermit'),org:g('fOrg'),manager:g('fMgr'),phone:g('fTel'),startDate:g('fStart'),endDate:g('fEnd'),team:g('fTeam'),hours:g('fHours'),areaText:g('fArea'),days:g('fDays'),staff:g('fStaff'),equipment:g('fEquip'),labor:g('fLabor')};
+    if(s&&s.endDate!==p.endDate)p.endMonth=false;
     if(s){await siteUp(S.sites[s.id],p);$ov.innerHTML='';render()}
     else{const doc=newSite(p),id=doc.id;
       if(await write(()=>db.doc('sites/'+id).set(doc))){S.sites[id]=doc;$ov.innerHTML='';nav('site-'+id)}}
